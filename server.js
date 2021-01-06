@@ -3,7 +3,10 @@ const expressGraphQL = require('express-graphql').graphqlHTTP;
 const {
   GraphQLSchema,
   GraphQLObjectType,
-  GraphQLString
+  GraphQLString,
+  GraphQLList,
+  GraphQLInt,
+  GraphQLNonNull
 } = require('graphql');
 const app = express();
 
@@ -24,9 +27,36 @@ const books = [
 	{ id: 8, name: 'Beyond the Shadows', authorId: 3 }
 ];
 
+//define BookType custom graphql obj type
+const BookType = new GraphQLObjectType({
+  name: 'Book',
+  description: 'This represents a book written by an author',
+  fields: () => ({
+    id: { type: GraphQLNonNull(GraphQLInt) },
+    name: { type: GraphQLNonNull(GraphQLString) },
+    authorId: { type: GraphQLNonNull(GraphQLInt) },
+    author: { 
+      type: AuthorType,
+      //because books does not have an author field, we need to specify a custom resolve for how we get this author
+      resolve: (book) => {
+        return authors.find(author => author.id === book.authorId)
+      }
+    }
+  })
+});
+
+const AuthorType = new GraphQLObjectType({
+  name: 'Author',
+  description: 'This represents an author of a book',
+  fields: () => ({
+    id: { type: GraphQLNonNull(GraphQLInt) },
+    name: { type: GraphQLNonNull(GraphQLString) }
+  })
+});
+
 // Schema defines query section, query section defines all the diff use cases we can use for querying, inside each diff obj, we have fields which are all diff section of that obj which we can query to return data from
 // the resolve is what actual info that we are returning from this field, how do we get the info from this field and return it: comes with few arguments... parent, args
-const schema = new GraphQLSchema({
+/*const schema = new GraphQLSchema({
   //define dummy schema
 
   //define query param
@@ -43,7 +73,28 @@ const schema = new GraphQLSchema({
       }
     })
   })
-})
+})*/
+
+const RootQueryType = new GraphQLObjectType({
+  name: 'Query',
+  description: 'Root Query',
+  fields: () => ({ //wrapped in () is equivalent to return
+    books: {
+      type: new GraphQLList(BookType), //Custom GraphQL obj type
+      description: 'List of All Books',
+      resolve: () => books //we're returning a list of book types so we need to import GraphQLList
+    },
+    authors: {
+      type: new GraphQLList(AuthorType), //Custom GraphQL obj type
+      description: 'List of All Authors',
+      resolve: () => authors //we're returning a list of book types so we need to import GraphQLList
+    }
+  })
+});
+
+const schema = new GraphQLSchema({
+  query: RootQueryType
+});
 
 //graphql knows which data to access based on query that you send it when a scheme is defined, need to pass through expressGraphQL function
 app.use('/graphql', expressGraphQL({
