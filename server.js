@@ -83,6 +83,7 @@ const AuthorType = new GraphQLObjectType({
 
 //graphql powerful in the part that you can create a lot of endpoint without needing to create new routes, you just create a single query field, which you query for that actual obj, once that obj is defined
 //you don't need to do much hard work to redefine how that obj is used for that new query, you just use the obj that's already defined
+//Lots of things in GraphQL are just custom obj full of diff params such as int, str, and so on, so really it's just typing out your diff objs is what GraphQL is all about
 const RootQueryType = new GraphQLObjectType({
   name: 'Query',
   description: 'Root Query',
@@ -116,8 +117,44 @@ const RootQueryType = new GraphQLObjectType({
   })
 });
 
+//modifying data is what we use mutations for. Mutations are graphql's version of using POST, PUT, and DELETE on a REST api server
+const RootMutationType = new GraphQLObjectType({
+  name: 'Mutation',
+  description: 'Root Mutation',
+  fields: () => ({
+    addBook: {
+      type: BookType,
+      description: 'Add a book',
+      args: { //need data to pass to the server in order to add a book
+        name: { type: GraphQLNonNull(GraphQLString) },
+        authorId: { type: GraphQLNonNull(GraphQLInt) }
+      },
+      resolve: (parents, args) => { //instead of querying data, we want to add data
+        //if you had a db the id would be automatically generated
+        const book = { id: books.length + 1, name: args.name, authorId: args.authorId }
+        books.push(book)
+        return book
+      }
+    },
+    addAuthor: {
+      type: AuthorType,
+      description: 'Add an author',
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) }
+      },
+      resolve: (parents, args) => {
+        const author = { id: authors.length + 1, name: args.name }
+        authors.push(author)
+        return author
+      }
+    }
+  })
+});
+
+
 const schema = new GraphQLSchema({
-  query: RootQueryType
+  query: RootQueryType,
+  mutation: RootMutationType,
 });
 
 //graphql knows which data to access based on query that you send it when a scheme is defined, need to pass through expressGraphQL function
