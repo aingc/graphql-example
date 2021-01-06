@@ -50,7 +50,13 @@ const AuthorType = new GraphQLObjectType({
   description: 'This represents an author of a book',
   fields: () => ({
     id: { type: GraphQLNonNull(GraphQLInt) },
-    name: { type: GraphQLNonNull(GraphQLString) }
+    name: { type: GraphQLNonNull(GraphQLString) },
+    books: { 
+      type: new GraphQLList(BookType),
+      resolve: (author) => {
+        return books.filter(book => book.authorId === author.id)
+      }
+    }
   })
 });
 
@@ -75,20 +81,38 @@ const AuthorType = new GraphQLObjectType({
   })
 })*/
 
+//graphql powerful in the part that you can create a lot of endpoint without needing to create new routes, you just create a single query field, which you query for that actual obj, once that obj is defined
+//you don't need to do much hard work to redefine how that obj is used for that new query, you just use the obj that's already defined
 const RootQueryType = new GraphQLObjectType({
   name: 'Query',
   description: 'Root Query',
   fields: () => ({ //wrapped in () is equivalent to return
+    book: {
+      type: BookType,
+      description: 'A Single Book',
+      args: {//define which arguments are valid for this query
+        id: { type: GraphQLInt }
+      },
+      resolve: (parent, args) => books.find(book => book.id === args.id) //with a db you would do a db query instead in order to get this
+    },
     books: {
       type: new GraphQLList(BookType), //Custom GraphQL obj type
       description: 'List of All Books',
       resolve: () => books //we're returning a list of book types so we need to import GraphQLList
     },
+    author: {
+      type: AuthorType,
+      description: 'A Single Author',
+      args : {
+        id: { type: GraphQLInt }
+      },
+      resolve: (parent, args) => authors.find(author => author.id === args.id)
+    },
     authors: {
       type: new GraphQLList(AuthorType), //Custom GraphQL obj type
       description: 'List of All Authors',
       resolve: () => authors //we're returning a list of book types so we need to import GraphQLList
-    }
+    },
   })
 });
 
